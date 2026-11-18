@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.urbanfoot.data.UserRepository
+import com.example.urbanfoot.model.User
 import com.example.urbanfoot.ui.theme.UrbanFootTheme
 
 class HomeActivity : ComponentActivity() {
@@ -48,7 +49,18 @@ fun HomeScreen(
     userRepository: UserRepository,
     onLogout: () -> Unit
 ) {
-    val user = remember { userRepository.getCurrentUser() }
+    var user by remember { mutableStateOf<User?>(userRepository.getCurrentUser()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        val fetchedUser = userRepository.fetchCurrentUser()
+        if (fetchedUser != null) {
+            user = fetchedUser
+            isLoading = false
+        } else {
+            onLogout()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -64,31 +76,35 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+        if (isLoading) {
+            CircularProgressIndicator()
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Name: ${user?.name ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Email: ${user?.email ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Rating: ${user?.rating ?: 0.0f}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "User ID: ${user?.userId ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Name: ${user?.name?.ifEmpty { "N/A" } ?: "N/A"}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Email: ${user?.email?.ifEmpty { "N/A" } ?: "N/A"}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Rating: ${user?.rating ?: 0.0f}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "User ID: ${user?.userId?.ifEmpty { "N/A" } ?: "N/A"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
 
@@ -99,18 +115,6 @@ fun HomeScreen(
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
         ) {
             Text("Logout")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedButton(
-            onClick = {
-                userRepository.clearDatabase()
-                onLogout()
-            },
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-        ) {
-            Text("Clear Database & Reset")
         }
     }
 }
